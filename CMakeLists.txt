@@ -1,21 +1,57 @@
-cmake_minimum_required(VERSION 2.8.4)
-project(cplex_example)
+# https://github.com/martinWANG2014/CplexCPlusPlusDemo/blob/master/CMakeLists.txt
+cmake_minimum_required(VERSION 3.15.0)
 
-set(CMAKE_MODULE_PATH               "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-set(CMAKE_CXX_FLAGS                 "${CMAKE_CXX_FLAGS} -std=c++14 -DIL_STD -m64 -Wall -Werror")
-set(CMAKE_CXX_FLAGS_DEBUG           "${CMAKE_CXX_FLAGS_DEBUG} -Og -ggdb")
-set(CMAKE_CXX_FLAGS_RELEASE         "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG -O3 -flto")
-set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX   "-isystem ")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  "${CMAKE_CURRENT_SOURCE_DIR}/build")
-set(LINKER_OPTIONS                  -flto -Wl,--no-as-needed)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+set(MY_PROJECT_NAME cplex_example)
+project(${MY_PROJECT_NAME})
 
-if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-    set(CMAKE_CXX_FLAGS_DEBUG       "${CMAKE_CXX_FLAGS_DEBUG} -save-temps=obj")
+######## Cplex Dependency
+find_package(Cplex REQUIRED)
+if(CPLEX_FOUND)
+    include_directories(${CPLEX_INCLUDE_DIR})
+    link_directories(${CPLEX_LIBRARY})
 endif()
 
-find_package(Cplex)
-include_directories(SYSTEM ${CPLEX_INCLUDE_DIRS})
+if(CPLEX_CONCERT_FOUND)
+    include_directories(${CPLEX_CONCERT_INCLUDE_DIR})
+    link_directories(${CPLEX_CONCERT_LIBRARY})
+endif()
 
+if(CPLEX_ILOCPLEX_FOUND)
+    include_directories(${CPLEX_ILOCPLEX_INCLUDE_DIR})
+    link_directories(${CPLEX_ILOCPLEX_LIBRARY})
+endif()
+
+if(CPLEX_CP_FOUND)
+    include_directories(${CPLEX_CP_INCLUDE_DIR})
+    link_directories(${CPLEX_CP_LIBRARY})
+endif()
+
+######## Complier message
+set(CMAKE_BUILD_TYPE Release)
+message(STATUS "System: ${CMAKE_SYSTEM}")
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "Compiler version: ${CMAKE_CXX_COMPILER_VERSION}")
+
+######## Set output directories.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build//bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build/lib)
+
+######## Set C++ 11 standard
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-std=c++11" COMPILER_SUPPORTS_CXX11)
+if (COMPILER_SUPPORTS_CXX11)
+    if (CMAKE_COMPILER_IS_GNUCXX)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
+    else ()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    endif ()
+else ()
+    message(STATUS "Fatal Error: Your compiler doesn't support c++11, please install it!")
+endif ()
+
+######## find all the source files.
 set(SOURCE_FILES
     src/graph.h
     src/graph.cpp
@@ -23,6 +59,8 @@ set(SOURCE_FILES
     src/solver.cpp
     src/main.cpp)
 
-add_executable(         cplex_example ${SOURCE_FILES})
-target_link_libraries(  cplex_example PRIVATE ${CPLEX_LIBRARIES})
-target_link_libraries(  cplex_example PRIVATE dl)
+
+######## Set executable file name, and add the source files for it.
+add_executable(${MY_PROJECT_NAME} ${HEADER_FILES} ${SOURCE_FILES})
+######## Add Dependency Library
+target_link_libraries(${MY_PROJECT_NAME} cplex-library cplex-concert ilocplex cplex-cp)
